@@ -1,0 +1,83 @@
+@import 'tailwindcss';
+@import 'mapbox-gl/dist/mapbox-gl.css';
+
+@theme {
+  --font-sans: ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+  --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+  --color-surface: 240 5% 8%;
+  /* zinc-900 */
+  --color-card: 240 5% 16%;
+  /* zinc-800 */
+  --color-border: 240 5% 26%;
+  /* zinc-700 */
+  --color-primary: 340 80% 60%;
+  /* pink-500 */
+}
+
+:root {
+  color-scheme: dark;
+  background-color: theme(colors.surface);
+  color: white;
+}
+
+body {
+  @apply bg-surface text-white font-sans;
+}
+
+/* MapControls component */
+
+@layer components {
+  .map-controls {
+    @apply bg-card border border-border text-white p-4 rounded-xl shadow-lg space-y-4 h-full w-80 flex flex-col transition-all duration-300 ease-in-out;
+  }
+
+  .map-controls h2 {
+    @apply text-lg font-semibold text-primary;
+  }
+
+  .tag-checkbox {
+    @apply text-sm bg-card px-2 py-1 rounded hover:bg-border;
+  }
+
+  .tag-checkbox input {
+    @apply mr-1 accent-[hsl(var(--color-primary))];
+  }
+
+  .area-select {
+    @apply bg-card border border-border rounded p-1 text-white;
+  }
+
+  .toggle-checkbox {
+    @apply mr-2 accent-[hsl(var(--color-primary))];
+  }
+
+  .sidebar {
+    @apply fixed top-0 left-0 h-screen z-40 bg-card border-r border-border shadow-xl flex flex-col;
+  }
+
+  .sidebar.collapsed {
+    @apply w-16;
+  }
+
+  .sidebar.expanded {
+    @apply w-80;
+  }
+
+  .sidebar-toggle {
+    @apply p-2 text-sm text-white hover:text-primary transition;
+  }
+
+  .restaurant-card {
+    @apply bg-border p-3 rounded-md hover:bg-zinc-700 cursor-pointer transition;
+  }
+
+  .restaurant-card h3 {
+    @apply text-base font-medium;
+  }
+
+  .restaurant-card p {
+    @apply text-sm text-zinc-400;
+  }
+}
