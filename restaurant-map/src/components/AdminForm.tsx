@@ -1,6 +1,5 @@
 "use client";
-import React, { useState } from 'react';
-import RestaurantAutocomplete from './RestaurantAutocomplete';
+import React, { useState, useEffect } from 'react';
 
 interface AdminFormProps {
   onSubmit?: (data: RestaurantData) => void;
@@ -30,14 +29,110 @@ export default function AdminForm({ onSubmit }: AdminFormProps) {
 
   const [tagInput, setTagInput] = useState('');
   const [errors, setErrors] = useState<Partial<RestaurantData>>({});
+  const [adminLocation, setAdminLocation] = useState<[number, number] | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [suggestions, setSuggestions] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [restaurantSelected, setRestaurantSelected] = useState(false);
+  const [sessionToken] = useState(() => Math.random().toString(36).substring(2, 15));
 
-  const handlePlaceSelect = (place: any) => {
-    setFormData(prev => ({
-      ...prev,
-      name: place.name,
-      address: place.address,
-      coordinates: place.coordinates
-    }));
+  // Star rating component
+  const StarRating = ({ value, onChange, label }: { value: number; onChange: (value: number) => void; label: string }) => (
+    <div>
+      <label className="block text-cyan-100 text-sm font-medium mb-2">{label}</label>
+      <div className="flex gap-1">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <button
+            key={star}
+            type="button"
+            onClick={() => onChange(star)}
+            className={`transition-all duration-200 ${
+              star <= value
+                ? 'text-cyan-300 drop-shadow-[0_0_8px_rgba(0,255,255,0.6)] scale-110'
+                : 'text-gray-500 hover:text-gray-400'
+            }`}
+          >
+            <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+            </svg>
+          </button>
+        ))}
+      </div>
+      <div className="text-cyan-300 text-sm mt-1">{value}/5</div>
+    </div>
+  );
+
+  // Get admin location on component mount
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const coords: [number, number] = [position.coords.longitude, position.coords.latitude];
+          setAdminLocation(coords);
+          console.log('Admin location obtained:', coords);
+        },
+        (error) => {
+          console.error('Error getting admin location:', error);
+          // Use default location if geolocation fails
+          setAdminLocation([-74.006, 40.7128]);
+        }
+      );
+    } else {
+      // Use default location if geolocation not supported
+      setAdminLocation([-74.006, 40.7128]);
+    }
+  }, []);
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim() || !adminLocation) return;
+    
+    setIsSearching(true);
+    try {
+      const response = await fetch(`/api/searchbox/suggest?q=${encodeURIComponent(searchQuery)}&session_token=${sessionToken}&proximity=${adminLocation[0]},${adminLocation[1]}`);
+      if (response.ok) {
+        const data = await response.json();
+        setSuggestions(data.suggestions || []);
+      }
+    } catch (error) {
+      console.error('Error searching:', error);
+      setSuggestions([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleSuggestionSelect = async (suggestion: any) => {
+    console.log('Selected suggestion:', suggestion);
+    try {
+      const response = await fetch(`/api/searchbox/retrieve?id=${suggestion.id}&session_token=${sessionToken}`);
+      console.log('Retrieve response status:', response.status);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Retrieved data:', data);
+        
+        setFormData(prev => {
+          const newData = {
+            ...prev,
+            name: data.name,
+            address: data.address,
+            coordinates: [data.lng, data.lat] as [number, number]
+          };
+          console.log('Updated form data:', newData);
+          return newData;
+        });
+        
+        setRestaurantSelected(true);
+        setSuggestions([]);
+        setSearchQuery(data.name);
+        console.log('Restaurant selected, form should now be visible');
+      } else {
+        const errorData = await response.json();
+        console.error('Retrieve API error:', errorData);
+      }
+    } catch (error) {
+      console.error('Error retrieving restaurant details:', error);
+    }
   };
 
   const handleInputChange = (field: keyof RestaurantData, value: any) => {
@@ -107,6 +202,9 @@ export default function AdminForm({ onSubmit }: AdminFormProps) {
         address: '',
         coordinates: [-74.006, 40.7128]
       });
+      setSearchQuery('');
+      setRestaurantSelected(false);
+      setSuggestions([]);
       setTagInput('');
       setErrors({});
     }
@@ -115,45 +213,95 @@ export default function AdminForm({ onSubmit }: AdminFormProps) {
   return (
     <div className="min-h-screen bg-bg-primary p-6">
       <div className="max-w-2xl mx-auto">
-        <div className="bg-bg-glass backdrop-blur-md border border-cyan-300/30 rounded-lg shadow-primary p-8">
-          <h1 className="text-cyan-100 text-2xl font-bold mb-6 text-center drop-shadow-[0_0_10px_rgba(0,255,255,0.3)]">
+        {/* Search Section - Always Visible */}
+        <div className="mb-6">
+          <h1 className="text-cyan-100 text-2xl font-bold mb-4 text-center drop-shadow-[0_0_10px_rgba(0,255,255,0.3)]">
             Add New Restaurant
           </h1>
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Restaurant Search */}
-            <div>
-              <label className="block text-cyan-100 text-sm font-medium mb-2">
-                Search Restaurant *
-              </label>
-              <RestaurantAutocomplete 
-                onSelect={handlePlaceSelect}
-                placeholder="Search for a restaurant..."
+          
+          <div className="bg-bg-glass backdrop-blur-md border border-cyan-300/30 rounded-lg shadow-primary p-6">
+            <label className="block text-cyan-100 text-sm font-medium mb-2">
+              Search Restaurant *
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                placeholder="Enter restaurant name and press Enter or click Search"
+                className="flex-1 px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-cyan-300 transition-colors"
               />
-              {errors.name && (
-                <p className="text-red-400 text-sm mt-1">{errors.name}</p>
-              )}
+              <button
+                type="button"
+                onClick={handleSearch}
+                disabled={isSearching}
+                className="px-6 py-3 bg-cyan-300 text-black rounded-lg hover:bg-cyan-400 transition-colors font-medium disabled:opacity-50"
+              >
+                {isSearching ? 'Searching...' : 'Search'}
+              </button>
             </div>
+            
+            {/* Suggestions */}
+            {suggestions.length > 0 && (
+              <div className="mt-2 bg-gray-800 border border-gray-600 rounded-lg max-h-60 overflow-y-auto">
+                {suggestions.map((suggestion) => (
+                  <div
+                    key={suggestion.id}
+                    onClick={() => handleSuggestionSelect(suggestion)}
+                    className="px-4 py-3 cursor-pointer hover:bg-gray-700 transition-colors border-b border-gray-600 last:border-b-0"
+                  >
+                    <div className="font-medium text-white">{suggestion.name}</div>
+                    <div className="text-sm text-gray-400">{suggestion.fullAddress}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {errors.name && (
+              <p className="text-red-400 text-sm mt-1">{errors.name}</p>
+            )}
+          </div>
+        </div>
 
-            {/* Review */}
-            <div>
-              <label htmlFor="review" className="block text-cyan-100 text-sm font-medium mb-2">
-                Review *
-              </label>
-              <textarea
-                id="review"
-                value={formData.review}
-                onChange={(e) => handleInputChange('review', e.target.value)}
-                rows={4}
-                className={`w-full px-4 py-3 bg-gray-800 border rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-cyan-300 transition-colors resize-none ${
-                  errors.review ? 'border-red-500' : 'border-gray-600'
-                }`}
-                placeholder="Write a detailed review of the restaurant"
-              />
-              {errors.review && (
-                <p className="text-red-400 text-sm mt-1">{errors.review}</p>
-              )}
-            </div>
+        {/* Form Section - Only Visible After Restaurant Selection */}
+        {restaurantSelected && (
+          <div className="bg-bg-glass backdrop-blur-md border border-cyan-300/30 rounded-lg shadow-primary p-8">
+                        <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Selected Restaurant Info - Display Only */}
+              <div className="bg-gray-800 border border-gray-600 rounded-lg p-4 mb-6">
+                <h3 className="text-cyan-300 text-lg font-semibold mb-3">Selected Restaurant</h3>
+                <div className="space-y-2">
+                  <div>
+                    <span className="text-gray-400 text-sm">Name:</span>
+                    <div className="text-white font-medium">{formData.name}</div>
+                  </div>
+                  <div>
+                    <span className="text-gray-400 text-sm">Address:</span>
+                    <div className="text-white">{formData.address}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Review */}
+              <div>
+                <label htmlFor="review" className="block text-cyan-100 text-sm font-medium mb-2">
+                  Review *
+                </label>
+                <textarea
+                  id="review"
+                  value={formData.review}
+                  onChange={(e) => handleInputChange('review', e.target.value)}
+                  rows={4}
+                  className={`w-full px-4 py-3 bg-gray-800 border rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-cyan-300 transition-colors resize-none ${
+                    errors.review ? 'border-red-500' : 'border-gray-600'
+                  }`}
+                  placeholder="Write a detailed review of the restaurant"
+                />
+                {errors.review && (
+                  <p className="text-red-400 text-sm mt-1">{errors.review}</p>
+                )}
+              </div>
 
             {/* Tags */}
             <div>
@@ -200,65 +348,16 @@ export default function AdminForm({ onSubmit }: AdminFormProps) {
 
             {/* Ratings */}
             <div className="grid grid-cols-2 gap-6">
-              <div>
-                <label htmlFor="rating" className="block text-cyan-100 text-sm font-medium mb-2">
-                  Rating (1-5) *
-                </label>
-                <input
-                  type="number"
-                  id="rating"
-                  min="1"
-                  max="5"
-                  value={formData.rating}
-                  onChange={(e) => handleInputChange('rating', parseInt(e.target.value))}
-                                  className={`w-full px-4 py-3 bg-gray-800 border rounded-lg text-white focus:outline-none focus:border-accent-light transition-colors ${
-                  errors.rating ? 'border-red-500' : 'border-gray-600'
-                }`}
-                />
-                {errors.rating && (
-                  <p className="text-red-400 text-sm mt-1">{errors.rating}</p>
-                )}
-              </div>
-
-              <div>
-                <label htmlFor="vibeRating" className="block text-cyan-100 text-sm font-medium mb-2">
-                  Vibe Rating (1-5) *
-                </label>
-                <input
-                  type="number"
-                  id="vibeRating"
-                  min="1"
-                  max="5"
-                  value={formData.vibeRating}
-                  onChange={(e) => handleInputChange('vibeRating', parseInt(e.target.value))}
-                                  className={`w-full px-4 py-3 bg-gray-800 border rounded-lg text-white focus:outline-none focus:border-accent-light transition-colors ${
-                  errors.vibeRating ? 'border-red-500' : 'border-gray-600'
-                }`}
-                />
-                {errors.vibeRating && (
-                  <p className="text-red-400 text-sm mt-1">{errors.vibeRating}</p>
-                )}
-              </div>
-            </div>
-
-            {/* Restaurant Address */}
-            <div>
-              <label htmlFor="address" className="block text-cyan-100 text-sm font-medium mb-2">
-                Restaurant Address *
-              </label>
-              <input
-                type="text"
-                id="address"
-                value={formData.address}
-                onChange={(e) => handleInputChange('address', e.target.value)}
-                className={`w-full px-4 py-3 bg-gray-800 border rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-cyan-300 transition-colors ${
-                  errors.address ? 'border-red-500' : 'border-gray-600'
-                }`}
-                placeholder="Enter restaurant address"
+              <StarRating 
+                value={formData.rating} 
+                onChange={(value) => handleInputChange('rating', value)} 
+                label="Rating *" 
               />
-              {errors.address && (
-                <p className="text-red-400 text-sm mt-1">{errors.address}</p>
-              )}
+              <StarRating 
+                value={formData.vibeRating} 
+                onChange={(value) => handleInputChange('vibeRating', value)} 
+                label="Vibe Rating *" 
+              />
             </div>
 
             {/* Image Upload */}
@@ -285,16 +384,19 @@ export default function AdminForm({ onSubmit }: AdminFormProps) {
             <input type="hidden" value={formData.coordinates[1]} />
 
             {/* Submit Button */}
-            <div className="pt-4">
-              <button
-                type="submit"
-                className="w-full bg-cyan-300 text-black py-3 px-6 rounded-lg font-medium hover:bg-cyan-400 transition-colors shadow-lg"
-              >
-                Add Restaurant
-              </button>
-            </div>
+            {restaurantSelected && (
+              <div className="pt-4">
+                <button
+                  type="submit"
+                  className="w-full bg-cyan-300 text-black py-3 px-6 rounded-lg font-medium hover:bg-cyan-400 transition-colors shadow-lg"
+                >
+                  Add Restaurant
+                </button>
+              </div>
+            )}
           </form>
         </div>
+        )}
       </div>
     </div>
   );
