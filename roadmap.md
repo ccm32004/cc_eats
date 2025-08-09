@@ -1,186 +1,95 @@
-Here’s your roadmap in Markdown format, ready to be saved as `README.md` or `roadmap.md`:
+## 🚀 Tasks
 
-````md
-# 🍜 Personal Restaurant Map App – Development Roadmap
-
-A map-based web app built using **Next.js**, **Tailwind CSS**, and **Mapbox**. Only the admin (you) can add restaurants. Visitors can view reviews, photos, and explore restaurants by tags, location, or area.
-
----
-
-## 🚀 Tech Stack
-
-- **Frontend**: Next.js, Tailwind CSS
-- **Mapping**: Mapbox GL JS
-- **Backend/API**: Next.js API Routes
-- **Database**: MongoDB Atlas
-- **Image Hosting**: Cloudinary or Firebase Storage
-- **Authentication**: Simple admin-only access for `/admin` route
-- **Autocomplete/Geolocation**: Mapbox Places API or Google Places API
+### **Phase 1 – Project & Theme Setup**
+1. Create Next.js project (`npx create-next-app@latest restaurant-map`) and verify dev server.
+2. Install Tailwind CSS (`tailwindcss postcss autoprefixer`) and init config.
+3. Configure Tailwind content paths for `/pages` and `/components`.
+4. Create `/styles/theme.css` with Neo-Night CSS variables, import into `globals.css`, test with sample div.
+5. Extend Tailwind config to use theme tokens, test with `bg-bg` class.
 
 ---
 
-## 📋 Step-by-Step Plan
-
-### ✅ Step 1: Setup Project
-- Create new Next.js project
-- Install Tailwind CSS
-- Configure Tailwind in `tailwind.config.js` and `globals.css`
-
-```bash
-npx create-next-app@latest restaurant-map
-cd restaurant-map
-npm install -D tailwindcss postcss autoprefixer
-npx tailwindcss init -p
-````
+### **Phase 2 – Shell Layout**
+6. Create `/components/Shell.tsx` with `<header>` and `<main>`, render in `index.tsx`.
+7. Add glassmorphic header styles, test visually.
+8. Implement two-column layout (sidebar + map) with placeholder blocks, test resizing.
 
 ---
 
-### ✅ Step 2: Setup Mapbox
-
-* Sign up on [mapbox.com](https://mapbox.com)
-* Install Mapbox GL JS
-* Add token to `.env.local`
-
-```bash
-npm install mapbox-gl
-```
-
-```env
-NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN=your_token_here
-```
-
-* Create `Map.tsx` component and initialize map in `useEffect`
+### **Phase 3 – Collapsible Sidebar**
+9. Create `/components/Sidebar.tsx` with placeholder text, import into `Shell`.
+10. Add collapse/expand state with toggle button.
+11. Add smooth transition animation for collapse.
+12. Style sidebar with glassmorphic background, blur, and shadows.
 
 ---
 
-### ✅ Step 3: Render Restaurant Markers
-
-* Create dummy data with lat/lng, name, tags
-* Use `mapboxgl.Marker()` to add markers
-* On click: show popup with name, rating, review, photos
-
----
-
-### ✅ Step 4: Enable Geolocation
-
-* Use browser's `navigator.geolocation`
-* Pan map to user location
-* Show restaurants within a radius (calculate using Haversine formula or MongoDB geospatial query)
+### **Phase 4 – Map Setup**
+13. Install Mapbox GL JS.
+14. Create `/components/Map.tsx` with Mapbox dark style, verify map renders.
+15. Adjust road/label colors to match Neo-Night palette, test styles.
+16. Make map fill right column in Shell layout.
 
 ---
 
-### ✅ Step 5: Filter Restaurants
-
-* Add dropdowns and checkboxes for:
-
-  * Cuisine tags
-  * Neighborhood/area
-* Dynamically show/hide markers based on filters
+### **Phase 5 – Restaurant Data Rendering**
+17. Add dummy restaurant array (`name`, `coordinates`, `rating`, `vibeRating`) in `Map.tsx`.
+18. Render Mapbox markers for each restaurant.
+19. Make marker click log restaurant name to console.
 
 ---
 
-### ✅ Step 6: Admin-Only Create Restaurant Page
-
-* Create `/admin` page protected by a password or simple auth
-* Admin form fields:
-
-  * Autocomplete search for name/place
-  * Review (text)
-  * Tags (cuisine, area)
-  * Rating (1–5 stars)
-  * Image uploader
-* On submit: store to MongoDB + upload images to Cloudinary
+### **Phase 6 – Popup Component**
+20. Create `/components/RestaurantPopup.tsx` with props: `name`, `rating`, `vibeRating`, `tags`, `image`, `review`.
+21. Integrate popup into marker click.
+22. Add glassmorphic + glow styling to popup.
+23. Display rating and vibeRating separately with distinct icons.
 
 ---
 
-### ✅ Step 7: MongoDB Integration
-
-* Use MongoDB Atlas
-* Install MongoDB driver:
-
-```bash
-npm install mongodb
-```
-
-* Create schema:
-
-```ts
-{
-  name: string,
-  coordinates: { lat: number, lng: number },
-  tags: string[],
-  review: string,
-  images: string[],
-  rating: number,
-  createdAt: Date
-}
-```
-
-* Use `/api/restaurants` for:
-
-  * `GET`: return all public restaurant data
-  * `POST`: admin-only endpoint to add new restaurant
+### **Phase 7 – Sidebar Content**
+24. Add search bar to Sidebar, log query on change.
+25. Add filter chips for dummy tags, log selection.
+26. Add dummy restaurant list to Sidebar with name, rating, vibeRating, tags.
+27. Clicking a restaurant recenters map.
 
 ---
 
-## ⚠️ Mapbox Rate Limit Tips
-
-| Tip                          | Description                                                     |
-| ---------------------------- | --------------------------------------------------------------- |
-| Free tier                    | 50,000 map loads/month (GL JS), 100,000 geocoding requests      |
-| Debounce autocomplete        | Wait 300–500ms between input changes                            |
-| Cache geocoding              | Avoid repeating the same queries                                |
-| Use conservative zoom levels | Lower zoom loads fewer tiles                                    |
-| Never expose secrets         | Store API keys in `.env.local`, not client code or public repos |
+### **Phase 8 – Geolocation**
+28. Add "Locate Me" button in map that logs location.
+29. Pan map to user location when found.
 
 ---
 
-## ✅ Features Overview
-
-* [ ] Admin-only `/admin` route to add restaurants
-* [ ] Interactive Mapbox map
-* [ ] Popups with reviews, tags, ratings, photos
-* [ ] Filter by tags and area
-* [ ] Center on user's location and show nearby restaurants
-* [ ] MongoDB data storage
-* [ ] Cloudinary or Firebase image hosting
+### **Phase 9 – Admin Form**
+30. Create `/components/AdminForm.tsx` with inputs for name, review, tags, rating, vibeRating, image URL.
+31. Render AdminForm in `/pages/admin/index.tsx`.
+32. Style form with Tailwind.
+33. Add validation: required fields and rating/vibeRating range 1–5.
 
 ---
 
-## 🗂 Suggested File Structure
-
-```
-/pages
-  index.tsx          # Public map
-  /admin/index.tsx   # Admin-only form
-/api
-  /restaurants
-    get.ts           # Fetch all restaurants
-    post.ts          # Add new restaurant (admin only)
-/lib
-  db.ts              # MongoDB connection
-  auth.ts            # Admin check logic
-/components
-  Map.tsx
-  RestaurantPopup.tsx
-  FilterBar.tsx
-  AdminForm.tsx
-```
+### **Phase 10 – Backend Integration**
+34. Install MongoDB driver.
+35. Create `/lib/db.ts` to connect to MongoDB, test with dummy query.
+36. Create `/api/restaurants/get.ts` to return all restaurants, test with fetch.
+37. Create `/api/restaurants/post.ts` to add restaurant, validate rating/vibeRating, test with POST.
+38. Replace dummy data in Map + Sidebar with API data.
 
 ---
 
-## 📌 Next Steps
+### **Phase 11 – Filtering & Sorting**
+39. Connect search bar to filter results from API.
+40. Connect tag chips to API filter.
+41. Add sort-by-vibeRating to Sidebar list.
 
-Start with:
+---
 
-* [ ] Map component
-* [ ] Dummy restaurant pins
-* [ ] Admin form
-* [ ] API routes
-
-```
-
-Let me know if you'd like this scaffolded into a GitHub repo or as a downloadable project starter!
-
-we don't need an actual application, we can do a web app in the form of a web app
-```
+✅ After Phase 11, MVP includes:
+- Neo-Night theme
+- Collapsible sidebar
+- Search/filter/sort
+- Ratings + vibeRating
+- Map markers + popups
+- Admin add restaurants
+- MongoDB backend
