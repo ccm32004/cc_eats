@@ -1,57 +1,62 @@
-Gotcha — we’ll still **store** the lat/lng in MongoDB (because the map needs them), but in the Admin Form UI we’ll:
+Alright — so for your **Phase 12 Admin Form flow**, you want:
 
-* Hide the lat/lng inputs from the admin.
-* Show a **read-only address field** populated from the Mapbox Places API.
-* Keep all other fields (name, tags, rating, etc.) editable as before.
+1. **One API call only after user presses Enter/search**, not on every keystroke.
+2. **Prompt admin for their location first**, so we can send `proximity` to the Search Box API.
+3. **Hide all other form fields** until a restaurant is selected.
+4. Show the **address** in a **read-only field**.
+5. Still keep `lat`/`lng` hidden for DB submission.
 
-Here’s how that fits into your incremental plan:
-
----
-
-### **Phase 12 – Admin Form Autocomplete (Mapbox Places)**
-
-42. **Create API proxy for Mapbox Places**
-
-    * Add `/app/api/places/route.ts` to call Mapbox Geocoding API with `categories=restaurant` and `autocomplete=true`.
-    * Return `{ id, name, fullName, coordinates, address }` from the Mapbox response.
-    * Store your Mapbox token in `.env.local` and avoid exposing it to the client.
-
-43. **Add autocomplete input to AdminForm**
-
-    * Replace the current “Restaurant Name” input with `<RestaurantAutocomplete />`.
-    * Debounce requests to `/api/places?q=…` (250–300ms).
-    * Show dropdown suggestions.
-
-44. **Auto-fill address & hidden lat/lng on selection**
-
-    * When an admin selects a suggestion:
-
-      * Set `name` → restaurant name.
-      * Set `address` → full formatted address.
-      * Store `lat` / `lng` in hidden form state (not visible in UI).
-
-45. **Update form layout**
-
-    * Add a **read-only address field** below the restaurant name input.
-    * Remove lat/lng inputs from the visible UI (keep them in state for submission).
-
-46. **Update backend**
-
-    * `/api/restaurants/post` should still validate and save `lat`, `lng`, `address`, `name`, etc.
-    * Keep unique constraint on `(externalId, source)` to prevent duplicates.
-
-47. **Test end-to-end**
-
-    * Search for a restaurant in Admin Form.
-    * Select a suggestion and see **address** fill in automatically.
-    * Fill in ratings/review/tags, submit, and confirm DB has name, address, lat, and lng.
-    * Check that it appears on the map at the correct location.
+Here’s the updated **Phase 12 tasks** reflecting that flow:
 
 ---
 
-If you want, I can give you the **updated AdminForm component** that:
+### **Phase 12 – Admin Form Restaurant Search (Mapbox Search Box)**
 
-* Integrates the autocomplete search
-* Shows the address field
-* Stores lat/lng in hidden state
-  so you can drop it straight into Phase 12.
+42. **Prompt for admin’s location**
+
+* When the Admin Form mounts, ask for geolocation via `navigator.geolocation.getCurrentPosition()`.
+* Store the `[lng, lat]` in component state for use in the API search.
+
+43. **Add `/api/searchbox/suggest/route.ts` proxy**
+
+* Accept query params: `q`, `session_token`, and `proximity=lng,lat`.
+* Call `https://api.mapbox.com/search/searchbox/v1/suggest` with `types=poi` and `poi_category=restaurant`.
+* Return `{ id, name, fullAddress }` for the top 5 matches.
+
+44. **Add `/api/searchbox/retrieve/route.ts` proxy**
+
+* Accept `id` and `session_token`.
+* Call `https://api.mapbox.com/search/searchbox/v1/retrieve/{id}`.
+* Return `{ name, address, lat, lng, externalId }`.
+
+45. **Implement search-on-submit behavior**
+
+* In the form’s search box, **don’t call the API on every keystroke**.
+* Only trigger `/api/searchbox/suggest` when the admin presses **Enter** or clicks a **Search** button.
+* Pass the `proximity` from step 42 in the API request.
+
+46. **Restaurant selection & reveal rest of form**
+
+* Show a list of suggestions returned from `/suggest`.
+* When admin clicks a suggestion:
+
+  * Call `/retrieve` to get lat/lng + address.
+  * Fill `name` and **read-only** `address` field.
+  * Store `lat`, `lng`, `externalId`, `source="mapbox-searchbox"` in hidden form state.
+  * **Reveal** the rest of the form fields: tags, rating, vibeRating, review, image URL.
+
+47. **Submit & store**
+
+* `/api/restaurants/post` should validate all required fields.
+* Store name, address, lat, lng, tags, rating, vibeRating, etc. in MongoDB.
+* Keep unique constraint on `(externalId, source)`.
+
+48. **Test complete flow**
+
+* On load, allow location access.
+* Search for a restaurant → see suggestions → pick one.
+* Verify name/address fill correctly, lat/lng hidden, rest of form visible.
+* Submit → confirm DB has correct fields.
+* Check the restaurant appears on the map at correct location.
+
+---

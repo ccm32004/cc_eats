@@ -21,8 +21,8 @@ export default function AdminForm({ onSubmit }: AdminFormProps) {
     name: '',
     review: '',
     tags: [],
-    rating: 5,
-    vibeRating: 5,
+    rating: 0,
+    vibeRating: 0,
     address: '',
     coordinates: [-74.006, 40.7128] // Default to NYC
   });
@@ -104,6 +104,7 @@ export default function AdminForm({ onSubmit }: AdminFormProps) {
   const handleSuggestionSelect = async (suggestion: any) => {
     console.log('Selected suggestion:', suggestion);
     try {
+      console.log('Retrieving details for suggestion ID:', suggestion.id);
       const response = await fetch(`/api/searchbox/retrieve?id=${suggestion.id}&session_token=${sessionToken}`);
       console.log('Retrieve response status:', response.status);
       
@@ -170,13 +171,12 @@ export default function AdminForm({ onSubmit }: AdminFormProps) {
     if (!formData.review.trim()) {
       newErrors.review = 'Review is required';
     }
-
     if (formData.rating < 1 || formData.rating > 5) {
-      newErrors.rating = 'Rating must be between 1 and 5';
+      newErrors.rating = 'Rating must be between 1 and 5' as any;
     }
 
     if (formData.vibeRating < 1 || formData.vibeRating > 5) {
-      newErrors.vibeRating = 'Vibe rating must be between 1 and 5';
+      newErrors.vibeRating = 'Vibe rating must be between 1 and 5' as any;
     }
 
     if (!formData.address.trim()) {
@@ -267,7 +267,7 @@ export default function AdminForm({ onSubmit }: AdminFormProps) {
         {/* Form Section - Only Visible After Restaurant Selection */}
         {restaurantSelected && (
           <div className="bg-bg-glass backdrop-blur-md border border-cyan-300/30 rounded-lg shadow-primary p-8">
-                        <form onSubmit={handleSubmit} className="space-y-6">
+              <form onSubmit={handleSubmit} className="space-y-6">
               {/* Selected Restaurant Info - Display Only */}
               <div className="bg-gray-800 border border-gray-600 rounded-lg p-4 mb-6">
                 <h3 className="text-cyan-300 text-lg font-semibold mb-3">Selected Restaurant</h3>
